@@ -1,0 +1,962 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <title>FSI-ME – Funktioneller Schweregrad</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root {
+      color-scheme: light dark;
+      --bg: #f5f5f7;
+      --bg-card: #ffffff;
+      --bg-card-dark: #1e1e24;
+      --text: #111827;
+      --text-muted: #6b7280;
+      --accent: #2563eb;
+      --accent-soft: #dbeafe;
+      --border: #e5e7eb;
+      --border-dark: #2d2f3a;
+      --danger: #b91c1c;
+      --radius: 14px;
+      --shadow: 0 10px 25px rgba(15,23,42,0.08);
+      --shadow-dark: 0 10px 25px rgba(0,0,0,0.6);
+      --font: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #020617;
+        --bg-card: #020617;
+        --bg-card-dark: #020617;
+        --text: #e5e7eb;
+        --text-muted: #9ca3af;
+        --accent-soft: #1e293b;
+        --border: #1f2937;
+        --border-dark: #111827;
+      }
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      background: radial-gradient(circle at top, #0f172a 0, var(--bg) 45%);
+      min-height: 100vh;
+      color: var(--text);
+      padding: 16px;
+    }
+
+    .page {
+      max-width: 860px;
+      margin: 0 auto 40px auto;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 16px;
+    }
+
+    header h1 {
+      font-size: 1.6rem;
+      margin: 0 0 4px 0;
+      letter-spacing: 0.03em;
+      text-transform: uppercase;
+    }
+
+    header p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .card {
+      background: var(--bg-card);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 16px 14px;
+      margin-bottom: 14px;
+      border: 1px solid var(--border);
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .card {
+        background: var(--bg-card-dark);
+        box-shadow: var(--shadow-dark);
+        border-color: var(--border-dark);
+      }
+    }
+
+    .card h2 {
+      margin: 0 0 8px 0;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    .card h2 span.tag {
+      font-size: 0.75rem;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+    }
+
+    .baseline-note {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .question {
+      border-radius: 12px;
+      border: 1px dashed var(--border);
+      padding: 10px 10px;
+      margin-bottom: 8px;
+      transition: opacity 0.15s ease, transform 0.15s ease, max-height 0.2s ease;
+    }
+
+    .question.hidden {
+      opacity: 0;
+      transform: translateY(-6px);
+      max-height: 0;
+      margin: 0;
+      padding: 0 10px;
+      border: none;
+      overflow: hidden;
+      pointer-events: none;
+    }
+
+    .q-header {
+      font-size: 0.9rem;
+      margin-bottom: 6px;
+    }
+
+    .q-id {
+      font-weight: 600;
+      opacity: 0.7;
+      margin-right: 4px;
+    }
+
+    .q-text {
+      font-weight: 500;
+    }
+
+    .options {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px 8px;
+      font-size: 0.85rem;
+    }
+
+    .options label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      padding: 2px 4px;
+      border-radius: 999px;
+      transition: background 0.1s ease, color 0.1s ease;
+    }
+
+    .options input[type="radio"] {
+      accent-color: var(--accent);
+    }
+
+    .scale-hint {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    .btn-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    button {
+      border-radius: 999px;
+      border: none;
+      padding: 8px 16px;
+      font-family: inherit;
+      font-size: 0.9rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent);
+      color: #f9fafb;
+      box-shadow: 0 5px 15px rgba(37,99,235,0.35);
+      transition: transform 0.1s ease, box-shadow 0.1s ease, opacity 0.1s ease;
+    }
+
+    button.secondary {
+      background: transparent;
+      color: var(--text-muted);
+      box-shadow: none;
+      border: 1px solid var(--border);
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 20px rgba(37,99,235,0.45);
+      opacity: 0.95;
+    }
+
+    button.secondary:hover {
+      box-shadow: var(--shadow);
+      opacity: 0.9;
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 5px 15px rgba(37,99,235,0.35);
+    }
+
+    .results {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    .result-box {
+      border-radius: 10px;
+      padding: 10px;
+      background: var(--accent-soft);
+      color: var(--text);
+      font-size: 0.82rem;
+    }
+
+    @media (prefers-color-scheme: dark) {
+      .result-box {
+        background: #020617;
+        border: 1px solid var(--border);
+        color: var(--text);
+      }
+    }
+
+    .result-title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .result-score {
+      font-size: 1.2rem;
+      font-weight: 700;
+    }
+
+    .result-sub {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .classification {
+      margin-top: 6px;
+      font-size: 0.9rem;
+    }
+
+    .classification span.badge {
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      margin-left: 4px;
+    }
+
+    .warning {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+
+    .warning span {
+      color: var(--danger);
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <header>
+      <h1>FSI-ME</h1>
+      <p>Experimenteller funktioneller Schweregrad-Index für ME/CFS (Very Severe geeignet)</p>
+    </header>
+
+    <div class="card">
+      <h2>Instruktion <span class="tag">0–4 Skala</span></h2>
+      <p class="baseline-note">
+        Beantworte die Fragen nach deinem typischen Zustand der letzten Tage/Wochen.
+        Skala pro Frage:
+      </p>
+      <ul class="baseline-note">
+        <li><strong>0</strong> = geht gar nicht / praktisch nie möglich</li>
+        <li><strong>1</strong> = extrem selten / nur unter extrem guten Bedingungen</li>
+        <li><strong>2</strong> = sehr eingeschränkt / nur mit deutlicher Verschlechterung</li>
+        <li><strong>3</strong> = mittel eingeschränkt</li>
+        <li><strong>4</strong> = nahezu normal / meistens möglich</li>
+      </ul>
+      <p class="baseline-note">
+        Einige Fragen werden automatisch ausgeblendet, wenn sie für deinen Zustand logisch keinen Sinn machen
+        (z.B. Gehen, wenn Sitzen schon gar nicht geht).
+      </p>
+    </div>
+
+    <!-- BASELINE -->
+    <div class="card" id="section-baseline">
+      <h2>Baseline / Einstieg <span class="tag">Q1–Q5</span></h2>
+      <p class="baseline-note">
+        Diese Fragen definieren grob dein Level (bettlägerig / etwas mobil / etc.) und steuern,
+        welche Detailfragen überhaupt angezeigt werden.
+      </p>
+
+      <div class="question" data-id="Q1" data-axis="Baseline">
+        <div class="q-header">
+          <span class="q-id">Q1</span>
+          <span class="q-text">
+            Kannst du ca. 5 Minuten mit leicht erhöhtem Oberkörper (z.B. 30°) wach bleiben,
+            ohne dass es sich noch am selben Tag deutlich verschlechtert?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q1" value="0">0</label>
+          <label><input type="radio" name="Q1" value="1">1</label>
+          <label><input type="radio" name="Q1" value="2">2</label>
+          <label><input type="radio" name="Q1" value="3">3</label>
+          <label><input type="radio" name="Q1" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q2" data-axis="Baseline">
+        <div class="q-header">
+          <span class="q-id">Q2</span>
+          <span class="q-text">
+            Kannst du ca. 5 Minuten auf Bettkante oder Stuhl sitzen (aufrecht),
+            ohne starke Verschlechterung noch am selben Tag?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q2" value="0">0</label>
+          <label><input type="radio" name="Q2" value="1">1</label>
+          <label><input type="radio" name="Q2" value="2">2</label>
+          <label><input type="radio" name="Q2" value="3">3</label>
+          <label><input type="radio" name="Q2" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q3" data-axis="Baseline">
+        <div class="q-header">
+          <span class="q-id">Q3</span>
+          <span class="q-text">
+            Kannst du 1–2 Schritte am Bett gehen (mit Festhalten),
+            ohne dass es sich noch am selben Tag deutlich verschlechtert?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q3" value="0">0</label>
+          <label><input type="radio" name="Q3" value="1">1</label>
+          <label><input type="radio" name="Q3" value="2">2</label>
+          <label><input type="radio" name="Q3" value="3">3</label>
+          <label><input type="radio" name="Q3" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q4" data-axis="Baseline">
+        <div class="q-header">
+          <span class="q-id">Q4</span>
+          <span class="q-text">
+            Kannst du einen einfachen Satz flüsternd sprechen,
+            ohne dass sich Symptome sofort deutlich verstärken?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q4" value="0">0</label>
+          <label><input type="radio" name="Q4" value="1">1</label>
+          <label><input type="radio" name="Q4" value="2">2</label>
+          <label><input type="radio" name="Q4" value="3">3</label>
+          <label><input type="radio" name="Q4" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q5" data-axis="Baseline">
+        <div class="q-header">
+          <span class="q-id">Q5</span>
+          <span class="q-text">
+            Kannst du für ca. 10 Sekunden normales Raumlicht ertragen,
+            ohne dass es sich sofort deutlich verschlechtert?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q5" value="0">0</label>
+          <label><input type="radio" name="Q5" value="1">1</label>
+          <label><input type="radio" name="Q5" value="2">2</label>
+          <label><input type="radio" name="Q5" value="3">3</label>
+          <label><input type="radio" name="Q5" value="4">4</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- PHYSISCH -->
+    <div class="card" id="section-physisch">
+      <h2>Physische Funktion <span class="tag">Q6–Q10</span></h2>
+
+      <div class="question" data-id="Q6" data-axis="Physisch" data-depends-on="Q1">
+        <div class="q-header">
+          <span class="q-id">Q6</span>
+          <span class="q-text">
+            Kannst du dich im Bett selbständig von einer Seite auf die andere drehen?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q6" value="0">0</label>
+          <label><input type="radio" name="Q6" value="1">1</label>
+          <label><input type="radio" name="Q6" value="2">2</label>
+          <label><input type="radio" name="Q6" value="3">3</label>
+          <label><input type="radio" name="Q6" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q7" data-axis="Physisch" data-depends-on="Q2">
+        <div class="q-header">
+          <span class="q-id">Q7</span>
+          <span class="q-text">
+            Kannst du ca. 5 Minuten auf der Bettkante sitzen (ohne Rückenlehne)?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q7" value="0">0</label>
+          <label><input type="radio" name="Q7" value="1">1</label>
+          <label><input type="radio" name="Q7" value="2">2</label>
+          <label><input type="radio" name="Q7" value="3">3</label>
+          <label><input type="radio" name="Q7" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q8" data-axis="Physisch" data-depends-on="Q3">
+        <div class="q-header">
+          <span class="q-id">Q8</span>
+          <span class="q-text">
+            Kannst du ca. 5 Schritte im Zimmer gehen (mit Festhalten, z.B. am Bett)?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q8" value="0">0</label>
+          <label><input type="radio" name="Q8" value="1">1</label>
+          <label><input type="radio" name="Q8" value="2">2</label>
+          <label><input type="radio" name="Q8" value="3">3</label>
+          <label><input type="radio" name="Q8" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q9" data-axis="Physisch" data-depends-on="Q2">
+        <div class="q-header">
+          <span class="q-id">Q9</span>
+          <span class="q-text">
+            Kannst du insgesamt ca. 30 Minuten am Tag ausserhalb des Bettes verbringen
+            (auch im Liegen auf Sofa/Sitz-/Liege)?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q9" value="0">0</label>
+          <label><input type="radio" name="Q9" value="1">1</label>
+          <label><input type="radio" name="Q9" value="2">2</label>
+          <label><input type="radio" name="Q9" value="3">3</label>
+          <label><input type="radio" name="Q9" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q10" data-axis="Physisch" data-depends-on="Q1">
+        <div class="q-header">
+          <span class="q-id">Q10</span>
+          <span class="q-text">
+            Kannst du den Oberkörper im Bett mehrmals (z.B. 5–10×) leicht anheben oder umlagern,
+            ohne Crash am selben Tag?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q10" value="0">0</label>
+          <label><input type="radio" name="Q10" value="1">1</label>
+          <label><input type="radio" name="Q10" value="2">2</label>
+          <label><input type="radio" name="Q10" value="3">3</label>
+          <label><input type="radio" name="Q10" value="4">4</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- NEURO -->
+    <div class="card" id="section-neuro">
+      <h2>Neuro / Kognition <span class="tag">Q11–Q15</span></h2>
+
+      <div class="question" data-id="Q11" data-axis="Neuro" data-depends-on="Q4">
+        <div class="q-header">
+          <span class="q-id">Q11</span>
+          <span class="q-text">
+            Kannst du einen sehr kurzen Text (1–2 Sätze) lesen und direkt verstehen?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q11" value="0">0</label>
+          <label><input type="radio" name="Q11" value="1">1</label>
+          <label><input type="radio" name="Q11" value="2">2</label>
+          <label><input type="radio" name="Q11" value="3">3</label>
+          <label><input type="radio" name="Q11" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q12" data-axis="Neuro" data-depends-on="Q4">
+        <div class="q-header">
+          <span class="q-id">Q12</span>
+          <span class="q-text">
+            Kannst du ein sehr ruhiges Gespräch von ca. 5 Minuten (1 Person, leise)
+            führen oder zuhören?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q12" value="0">0</label>
+          <label><input type="radio" name="Q12" value="1">1</label>
+          <label><input type="radio" name="Q12" value="2">2</label>
+          <label><input type="radio" name="Q12" value="3">3</label>
+          <label><input type="radio" name="Q12" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q13" data-axis="Neuro" data-depends-on="Q11">
+        <div class="q-header">
+          <span class="q-id">Q13</span>
+          <span class="q-text">
+            Kannst du dich ca. 10 Minuten auf eine einfache Aufgabe konzentrieren
+            (z.B. leichten Text lesen, ruhigen Chat verfolgen)?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q13" value="0">0</label>
+          <label><input type="radio" name="Q13" value="1">1</label>
+          <label><input type="radio" name="Q13" value="2">2</label>
+          <label><input type="radio" name="Q13" value="3">3</label>
+          <label><input type="radio" name="Q13" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q14" data-axis="Neuro" data-depends-on="Q11">
+        <div class="q-header">
+          <span class="q-id">Q14</span>
+          <span class="q-text">
+            Kannst du einfache Kopfrechenaufgaben (z.B. 3+4, 10−2) lösen,
+            ohne dass es sich sofort deutlich verschlechtert?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q14" value="0">0</label>
+          <label><input type="radio" name="Q14" value="1">1</label>
+          <label><input type="radio" name="Q14" value="2">2</label>
+          <label><input type="radio" name="Q14" value="3">3</label>
+          <label><input type="radio" name="Q14" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q15" data-axis="Neuro" data-depends-on="Q11">
+        <div class="q-header">
+          <span class="q-id">Q15</span>
+          <span class="q-text">
+            Kannst du 3–5 kurze Chat-/Textnachrichten lesen oder schreiben,
+            ohne deutlichen Overload?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q15" value="0">0</label>
+          <label><input type="radio" name="Q15" value="1">1</label>
+          <label><input type="radio" name="Q15" value="2">2</label>
+          <label><input type="radio" name="Q15" value="3">3</label>
+          <label><input type="radio" name="Q15" value="4">4</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- SENSORIK -->
+    <div class="card" id="section-sensorik">
+      <h2>Sensorik / Reizbelastung <span class="tag">Q16–Q20</span></h2>
+
+      <div class="question" data-id="Q16" data-axis="Sensorik" data-depends-on="Q5">
+        <div class="q-header">
+          <span class="q-id">Q16</span>
+          <span class="q-text">
+            Kannst du ca. 30 Minuten bei gedämpftem Licht (z.B. abgedunkelter Raum,
+            keine direkte Lampe) bleiben?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q16" value="0">0</label>
+          <label><input type="radio" name="Q16" value="1">1</label>
+          <label><input type="radio" name="Q16" value="2">2</label>
+          <label><input type="radio" name="Q16" value="3">3</label>
+          <label><input type="radio" name="Q16" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q17" data-axis="Sensorik" data-depends-on="Q16">
+        <div class="q-header">
+          <span class="q-id">Q17</span>
+          <span class="q-text">
+            Kannst du ca. 10 Minuten normales Zimmerlicht ertragen (ohne Sonnenbrille),
+            ohne sofortigen starken Crash?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q17" value="0">0</label>
+          <label><input type="radio" name="Q17" value="1">1</label>
+          <label><input type="radio" name="Q17" value="2">2</label>
+          <label><input type="radio" name="Q17" value="3">3</label>
+          <label><input type="radio" name="Q17" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q18" data-axis="Sensorik" data-depends-on="Q4">
+        <div class="q-header">
+          <span class="q-id">Q18</span>
+          <span class="q-text">
+            Kannst du ca. 5 Minuten eine Stimme plus leise Hintergrundgeräusche
+            tolerieren (z.B. leise Musik, Alltagsgeräusche)?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q18" value="0">0</label>
+          <label><input type="radio" name="Q18" value="1">1</label>
+          <label><input type="radio" name="Q18" value="2">2</label>
+          <label><input type="radio" name="Q18" value="3">3</label>
+          <label><input type="radio" name="Q18" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q19" data-axis="Sensorik" data-depends-on="Q11">
+        <div class="q-header">
+          <span class="q-id">Q19</span>
+          <span class="q-text">
+            Kannst du Handy/Tablet für ca. 5 Minuten mit Ton oder Systemgeräuschen
+            nutzen, ohne starken Overload?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q19" value="0">0</label>
+          <label><input type="radio" name="Q19" value="1">1</label>
+          <label><input type="radio" name="Q19" value="2">2</label>
+          <label><input type="radio" name="Q19" value="3">3</label>
+          <label><input type="radio" name="Q19" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q20" data-axis="Sensorik" data-depends-on="Q12">
+        <div class="q-header">
+          <span class="q-id">Q20</span>
+          <span class="q-text">
+            Kannst du ein ca. 5-minütiges Gespräch bei Tageslicht oder normalem Zimmerlicht
+            tolerieren?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q20" value="0">0</label>
+          <label><input type="radio" name="Q20" value="1">1</label>
+          <label><input type="radio" name="Q20" value="2">2</label>
+          <label><input type="radio" name="Q20" value="3">3</label>
+          <label><input type="radio" name="Q20" value="4">4</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- AUTONOM -->
+    <div class="card" id="section-autonom">
+      <h2>Autonom / Kreislauf <span class="tag">Q21–Q24</span></h2>
+
+      <div class="question" data-id="Q21" data-axis="Autonom" data-depends-on="Q1">
+        <div class="q-header">
+          <span class="q-id">Q21</span>
+          <span class="q-text">
+            Kannst du dich im Bett vom Liegen in eine etwas aufrechtere Position bringen,
+            ohne starken Schwindel/Kollapsgefühl?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q21" value="0">0</label>
+          <label><input type="radio" name="Q21" value="1">1</label>
+          <label><input type="radio" name="Q21" value="2">2</label>
+          <label><input type="radio" name="Q21" value="3">3</label>
+          <label><input type="radio" name="Q21" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q22" data-axis="Autonom" data-depends-on="Q2">
+        <div class="q-header">
+          <span class="q-id">Q22</span>
+          <span class="q-text">
+            Kannst du ca. 5 Minuten sitzen, ohne starken Herzrasen, Kollapsgefühl
+            oder Schwarzwerden vor Augen?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q22" value="0">0</label>
+          <label><input type="radio" name="Q22" value="1">1</label>
+          <label><input type="radio" name="Q22" value="2">2</label>
+          <label><input type="radio" name="Q22" value="3">3</label>
+          <label><input type="radio" name="Q22" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q23" data-axis="Autonom" data-depends-on="Q4">
+        <div class="q-header">
+          <span class="q-id">Q23</span>
+          <span class="q-text">
+            Kannst du 1–2 kurze Sätze sprechen, ohne sofort Luftnot, Engegefühl im
+            Brustkorb oder massives Herzklopfen zu bekommen?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q23" value="0">0</label>
+          <label><input type="radio" name="Q23" value="1">1</label>
+          <label><input type="radio" name="Q23" value="2">2</label>
+          <label><input type="radio" name="Q23" value="3">3</label>
+          <label><input type="radio" name="Q23" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="question" data-id="Q24" data-axis="Autonom" data-depends-on="Q13">
+        <div class="q-header">
+          <span class="q-id">Q24</span>
+          <span class="q-text">
+            Kannst du ca. 10 Minuten sehr leichte Aktivität im Liegen (z.B. Chat lesen)
+            durchführen, ohne massives Herzrasen oder starke Dysregulation?
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q24" value="0">0</label>
+          <label><input type="radio" name="Q24" value="1">1</label>
+          <label><input type="radio" name="Q24" value="2">2</label>
+          <label><input type="radio" name="Q24" value="3">3</label>
+          <label><input type="radio" name="Q24" value="4">4</label>
+        </div>
+      </div>
+    </div>
+
+    <!-- PEM -->
+    <div class="card" id="section-pem">
+      <h2>PEM / Crash-Muster <span class="tag">Q25</span></h2>
+
+      <div class="question" data-id="Q25" data-axis="PEM">
+        <div class="q-header">
+          <span class="q-id">Q25</span>
+          <span class="q-text">
+            Wie gut kannst du PEM durch vorsichtige Dosierung vermeiden?<br>
+            (0 = fast immer PEM schon nach minimaler Aktivität, 4 = PEM nur selten nach klarer Überbelastung)
+          </span>
+        </div>
+        <div class="options">
+          <label><input type="radio" name="Q25" value="0">0</label>
+          <label><input type="radio" name="Q25" value="1">1</label>
+          <label><input type="radio" name="Q25" value="2">2</label>
+          <label><input type="radio" name="Q25" value="3">3</label>
+          <label><input type="radio" name="Q25" value="4">4</label>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button id="calcBtn">FSI-ME berechnen</button>
+        <button class="secondary" id="resetBtn">Alles zurücksetzen</button>
+      </div>
+
+      <div class="results" id="results" style="display:none;">
+        <div class="result-box" id="res-total">
+          <div class="result-title">Gesamt-FSI-ME</div>
+          <div class="result-score" id="totalScore">–</div>
+          <div class="result-sub" id="totalSub">0 = extrem schwer, 100 = fast normal</div>
+        </div>
+        <div class="result-box" id="res-phys">
+          <div class="result-title">Physisch</div>
+          <div class="result-score" id="physScore">–</div>
+          <div class="result-sub">0–100 (nur aktiv beantwortete Fragen)</div>
+        </div>
+        <div class="result-box" id="res-neuro">
+          <div class="result-title">Neuro / Kognition</div>
+          <div class="result-score" id="neuroScore">–</div>
+          <div class="result-sub">0–100</div>
+        </div>
+        <div class="result-box" id="res-sens">
+          <div class="result-title">Sensorik / Reize</div>
+          <div class="result-score" id="sensScore">–</div>
+          <div class="result-sub">0–100</div>
+        </div>
+        <div class="result-box" id="res-auto">
+          <div class="result-title">Autonom</div>
+          <div class="result-score" id="autoScore">–</div>
+          <div class="result-sub">0–100</div>
+        </div>
+        <div class="result-box" id="res-pem">
+          <div class="result-title">PEM-Index</div>
+          <div class="result-score" id="pemScore">–</div>
+          <div class="result-sub">0–100 (aus Q25)</div>
+        </div>
+      </div>
+
+      <div class="classification" id="classBox" style="display:none;">
+        Funktionsklasse:
+        <span class="badge" id="classLabel">–</span>
+      </div>
+
+      <p class="warning">
+        <span>Hinweis:</span> Dieses Tool ist experimentell und ersetzt keine ärztliche
+        Diagnostik oder Begutachtung. Die Fragen sind bewusst auf sehr schwere Verläufe
+        zugeschnitten und sollen v.a. Muster sichtbar machen.
+      </p>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      const questions = Array.from(document.querySelectorAll('.question'));
+
+      function getAnswerValue(id) {
+        const q = document.querySelector('.question[data-id="' + id + '"]');
+        if (!q || q.classList.contains('hidden')) return null;
+        const checked = q.querySelector('input[type="radio"]:checked');
+        if (!checked) return null;
+        const v = parseInt(checked.value, 10);
+        return isNaN(v) ? null : v;
+      }
+
+      function updateVisibility() {
+        questions.forEach(q => {
+          const dep = q.dataset.dependsOn;
+          if (!dep) {
+            q.classList.remove('hidden');
+            return;
+          }
+          const depVal = getAnswerValue(dep);
+          const active = depVal !== null && depVal >= 1;
+          if (!active) {
+            q.classList.add('hidden');
+            // Antwort löschen, wenn Frage inaktiv wird
+            q.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+          } else {
+            q.classList.remove('hidden');
+          }
+        });
+      }
+
+      function computeScores() {
+        const axisData = {
+          'Physisch': { sum: 0, count: 0 },
+          'Neuro': { sum: 0, count: 0 },
+          'Sensorik': { sum: 0, count: 0 },
+          'Autonom': { sum: 0, count: 0 },
+          'PEM': { sum: 0, count: 0 },
+          'Baseline': { sum: 0, count: 0 }
+        };
+
+        let totalSum = 0;
+        let totalCount = 0;
+
+        questions.forEach(q => {
+          if (q.classList.contains('hidden')) return;
+          const id = q.dataset.id;
+          const axis = q.dataset.axis || 'Sonstiges';
+          const checked = q.querySelector('input[type="radio"]:checked');
+          if (!checked) return;
+          const v = parseInt(checked.value, 10);
+          if (isNaN(v)) return;
+
+          // pro Achse
+          if (!axisData[axis]) axisData[axis] = { sum: 0, count: 0 };
+          axisData[axis].sum += v;
+          axisData[axis].count += 1;
+
+          // Gesamt FSI nur ohne Baseline
+          if (axis !== 'Baseline') {
+            totalSum += v;
+            totalCount += 1;
+          }
+        });
+
+        function axisScore(axis) {
+          const d = axisData[axis];
+          if (!d || d.count === 0) return null;
+          return (d.sum / (d.count * 4)) * 100;
+        }
+
+        const phys = axisScore('Physisch');
+        const neuro = axisScore('Neuro');
+        const sens = axisScore('Sensorik');
+        const auto = axisScore('Autonom');
+        const pem = axisScore('PEM');
+        const base = axisScore('Baseline');
+
+        // Gesamt-FSI-ME (alle Nicht-Baseline Antworten)
+        let total = null;
+        if (totalCount > 0) {
+          total = (totalSum / (totalCount * 4)) * 100;
+        }
+
+        const resultsEl = document.getElementById('results');
+        const classBox = document.getElementById('classBox');
+        resultsEl.style.display = 'grid';
+
+        function setScore(id, value) {
+          const el = document.getElementById(id);
+          el.textContent = value === null ? '–' : value.toFixed(1);
+        }
+
+        setScore('totalScore', total);
+        setScore('physScore', phys);
+        setScore('neuroScore', neuro);
+        setScore('sensScore', sens);
+        setScore('autoScore', auto);
+        setScore('pemScore', pem);
+
+        // Klassifikation aus Gesamt-FSI
+        let cls = '–';
+        if (total !== null) {
+          if (total < 20) cls = 'Very Severe';
+          else if (total < 40) cls = 'Severe';
+          else if (total < 60) cls = 'Moderate';
+          else if (total < 80) cls = 'Mild';
+          else cls = 'Sehr mild / fast normal';
+        }
+        document.getElementById('classLabel').textContent = cls;
+        classBox.style.display = 'block';
+
+        // Zusatzinfo zu Baseline in der Sub-Zeile
+        const totalSub = document.getElementById('totalSub');
+        if (base !== null) {
+          totalSub.textContent =
+            '0 = extrem schwer, 100 = fast normal – Baseline-Index: ' + base.toFixed(1);
+        } else {
+          totalSub.textContent = '0 = extrem schwer, 100 = fast normal';
+        }
+      }
+
+      function resetAll() {
+        questions.forEach(q => {
+          q.querySelectorAll('input[type="radio"]').forEach(r => r.checked = false);
+        });
+        updateVisibility();
+        document.getElementById('results').style.display = 'none';
+        document.getElementById('classBox').style.display = 'none';
+      }
+
+      // Event-Listener
+      document.addEventListener('change', (evt) => {
+        if (evt.target.matches('input[type="radio"]')) {
+          updateVisibility();
+        }
+      });
+
+      document.getElementById('calcBtn').addEventListener('click', computeScores);
+      document.getElementById('resetBtn').addEventListener('click', resetAll);
+
+      // Initial
+      updateVisibility();
+    })();
+  </script>
+</body>
+</html>
